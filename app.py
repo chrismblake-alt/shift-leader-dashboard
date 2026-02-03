@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import gspread
-from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import re
 
@@ -12,26 +10,13 @@ st.set_page_config(
     layout="wide"
 )
 
-# Google Sheets connection
-@st.cache_resource
-def get_google_client():
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    creds = Credentials.from_service_account_info(
-        st.secrets["gcp_service_account"],
-        scopes=scopes
-    )
-    return gspread.authorize(creds)
+# Google Sheet ID
+SHEET_ID = "1dlEsHDCB5doCrnli2QD3tjNdcMKfqxHchekYrEa4_uc"
 
 @st.cache_data(ttl=60)
 def load_data():
-    client = get_google_client()
-    sheet = client.open_by_key("1dlEsHDCB5doCrnli2QD3tjNdcMKfqxHchekYrEa4_uc")
-    worksheet = sheet.sheet1
-    data = worksheet.get_all_records()
-    df = pd.DataFrame(data)
+    url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+    df = pd.read_csv(url)
     
     if len(df) > 0 and 'Submission Date' in df.columns:
         df['Submission Date'] = pd.to_datetime(df['Submission Date'])
@@ -160,8 +145,8 @@ st.caption("Children's Shelter - Daily Checklist Tracking")
 try:
     df = load_data()
 except Exception as e:
-    st.error(f"Error connecting to Google Sheets: {e}")
-    st.info("Make sure your secrets.toml file is configured with Google service account credentials.")
+    st.error(f"Error loading data: {e}")
+    st.info("Make sure the Google Sheet is set to 'Anyone with the link can view'")
     st.stop()
 
 if len(df) == 0:
